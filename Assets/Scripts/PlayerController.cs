@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,15 +14,23 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float coyoteTime = 0.1f;     // seconds after leaving a ledge
     [SerializeField] float jumpBuffer = 0.12f;    // seconds before landing
 
+    [Header("Landing squash")]
+    [SerializeField] Transform body;
+    [SerializeField] float squashY = 0.7f;
+    [SerializeField] float squashDuration = 0.25f;
+    [SerializeField] float minAirTime = 0.1f;
+
     Rigidbody rb;
     InputAction moveAction;
     InputAction jumpAction;
 
     Vector3 move;
-    bool isGrounded, jumpQueued, rising;
+    bool isGrounded, wasGrounded, jumpQueued, rising;
     float lastGroundedTime = -1f;
     float lastPressedTime = -1f;
+    float leftGroundTime;
     Vector3 groundPoint, groundNormal = Vector3.up;
+    Coroutine squash;
 
     void Awake()
     {
@@ -54,6 +63,16 @@ public class PlayerController : MonoBehaviour
             lastGroundedTime = -1f;
             lastPressedTime = -1f;
         }
+
+        // squash once per real landing
+        if (!isGrounded && wasGrounded)
+            leftGroundTime = Time.time;
+        if (isGrounded && !wasGrounded && Time.time - leftGroundTime > minAirTime)
+        {
+            if (squash != null) StopCoroutine(squash);
+            squash = StartCoroutine(Squash());
+        }
+        wasGrounded = isGrounded;
     }
 
     void FixedUpdate()
@@ -102,6 +121,30 @@ public class PlayerController : MonoBehaviour
                 groundNormal = contact.normal;
             }
         }
+    }
+
+    IEnumerator Squash()
+    {
+        // keep the volume: x and z grow when y shrinks
+        float side = 1f / Mathf.Sqrt(squashY);
+        Vector3 squashed = new Vector3(side, squashY, side);
+
+        for (float elapsed = 0f; elapsed < squashDuration; elapsed += Time.deltaTime)
+        {
+            float p = Ease.OutBack(elapsed / squashDuration);
+            SetBodyScale(Vector3.LerpUnclamped(squashed, Vector3.one, p));
+            yield return null;
+        }
+
+        SetBodyScale(Vector3.one); // exactly at rest
+        squash = null;
+    }
+
+    void SetBodyScale(Vector3 scale)
+    {
+        // the capsule is 2 m tall, so move it down to keep the feet on the ground
+        body.localScale = scale;
+        body.localPosition = new Vector3(0f, scale.y - 1f, 0f);
     }
 
     void OnDrawGizmosSelected()

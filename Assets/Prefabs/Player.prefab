@@ -188,3 +188,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   speed: 6
+  jumpHeight: 1.8
+  fallMultiplier: 2.2
+  coyoteTime: 0.1
+  jumpBuffer: 0.12
+  body: {fileID: 8467655637740384674}
+  squashY: 0.7
+  squashDuration: 0.25
+  minAirTime: 0.1
