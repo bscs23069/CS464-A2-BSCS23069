@@ -1,79 +1,37 @@
-# CS464 Assignment 01 · Mayasa Fakhar · BSCS23069
+# CS464 Assignment 02 · Mayasa Fakhar · BSCS23069
 
-## Game 1 · Subway Surfers
+- **Video:** [VIDEO LINK]
+- **Input:** InputSystem.actions, the Move and Jump actions from the project-wide actions asset (Active Input Handling is set to Input System Package)
+- **Ground check:** contact normal, a contact only counts if `Vector3.Dot(normal, Vector3.up) > 0.5`
+- **Camera:** SmoothDamp with look-ahead from the player's velocity
+- **Juice:** a squash on Body when the player lands, eased with Ease.OutBack, started on a landing after more than 0.1 s in the air
 
-- **Store link:** https://play.google.com/store/apps/details?id=com.kiloo.subwaysurf
-- **Genre:** Endless runner
-- **I played:** More than 30 minutes over a lot of runs. My best run (Top Run) was 22,359 points.
-- **Video (optional):** None
+## Tuning
 
-<p>
-<img src="Docs/game1/1.png" width="240">
-<img src="Docs/game1/2.png" width="240">
-<img src="Docs/game1/3.png" width="240">
-<img src="Docs/game1/4.png" width="240">
-</p>
+| Setting | Value | Why this number |
+|---|---|---|
+| Speed | 6 m/s | Each level is about 69 m from spawn to goal, so a straight run takes about 11.5 s and all five fit in a 60 s video. It also makes one jump carry 6.1 m, more than my widest gap. |
+| Jump height | 1.8 m | My ledges are 1.2 m, so this leaves 0.6 m spare to get the feet on top. The 2 m blocks in Level02 were too tall for it, so I lowered them. |
+| Time to apex | 0.61 s | It follows from the height: v0 = √(2 · 9.81 · 1.8) = 5.94 m/s, and 5.94 / 9.81 = 0.61 s. |
+| Fall multiplier | 2.2× | The fall takes 0.61 / √2.2 = 0.41 s instead of 0.61 s, so the jump lasts 1.01 s and doesn't float. The apex stays at 1.8 m. |
+| Coyote time | 0.1 s | At 6 m/s that is 0.6 m past the edge, which is enough to catch a late press at the gaps in Level02 and on the bridge in Level04. |
+| Jump buffer | 0.12 s | At the end of a fall that covers about the last 0.9 m, so pressing a bit before landing on a ledge still jumps straight away. |
+| Camera smoothing | smoothTime 0.3 s | At 6 m/s SmoothDamp trails about 6 × 0.3 = 1.8 m behind. It's smooth on landings but still keeps up in the hall. |
+| Look-ahead | 0.35 s | At 6 m/s the aim point moves 2.1 m ahead, a bit more than the 1.8 m lag, so I can see a gap before I reach it. |
 
-1. M1, M4, M7 · Running down my lane towards a line of coins, with the score, the x12 multiplier and the coin count at the top.
-2. M2, M3 · Jumping over a barrier while a train comes past in the lane next to me.
-3. M3, M5 · Jumping a barrier with the Coin Magnet on. Its timer bar is at the bottom left.
-4. M5 · A Coin Magnet power-up lying on the track, with the 2X coins offer on the left.
+## Four answers
 
-| # | Mechanic | Dynamic | Aesthetic | Bartle type |
-|---|---|---|---|---|
-| M1 | The character runs forward automatically, so the player controls movement rather than stopping to walk. | Players continuously make quick movement decisions because the character keeps moving forward and the environment approaches without stopping. | Sensation: the constant speed and the world rushing at you is exciting on its own, and you have to react quickly to obstacles. | Achiever: the player is trying to survive and improve within the game's rules. |
-| M2 | The player can swipe left or right to move between the available lanes. | Players rapidly switch lanes to collect useful items or avoid trains, barriers and other obstacles. | Challenge: choosing the correct lane under time pressure creates an obstacle-solving experience. | Achiever: the player actively changes position to overcome obstacles. |
-| M3 | The player can swipe up to jump over obstacles and swipe down to roll under obstacles. | Players choose between jumping, rolling or changing lanes depending on the height and position of an obstacle. | Challenge: the player must read an obstacle and select the correct response quickly. | Achiever: the player's actions directly overcome obstacles in the game world. |
-| M4 | Coins can be collected during a run and added to the player's currency total. | Players take calculated risks by moving toward coin paths while still trying to avoid obstacles. | Discovery: players notice and pursue collectible paths and opportunities placed in the running environment. | Explorer: the player looks around the track for the coin lines and the safe way to reach them. |
-| M5 | The Coin Magnet collects coins for you, and the 2X Multiplier doubles the coins as you collect them. | Players change their behaviour around power-ups, often moving toward them because the temporary advantage can increase survival, coins or score. | Challenge: temporary abilities help players handle the fast-running obstacle course and improve their performance. | Achiever: the player uses game-system abilities to improve performance and score. |
-| M6 | Colliding with an obstacle or train can end the run. | Players become more careful as the run continues and gets faster, and try to predict what to do for obstacles instead of reacting too late. | Challenge: failure is tied to avoiding increasingly difficult obstacles, making successful survival meaningful. | Achiever: the player is trying to beat the game's survival and score conditions. |
-| M7 | Players earn score during runs, and longer runs allow them to achieve higher scores and complete objectives. | Players replay runs and attempt safer or more efficient routes to beat previous scores and complete goals. | Challenge: players are motivated to improve their performance against the game's scoring objectives. | Achiever: the main target is measurable performance within the game system. |
+1. **The jump, in numbers.** With g = 9.81 and jumpHeight = 1.8 m, the launch speed is v0 = √(2 · 9.81 · 1.8) = 5.94 m/s. The player's mass is 1 kg, so the impulse (jumpForce) is m · v0 = 5.94 N·s. It takes 0.61 s to reach the top. With 2.2× gravity on the way down, the fall from 1.8 m takes √(2 · 1.8 / (9.81 · 2.2)) = 0.41 s, so the whole jump is about 1.01 s. At 6 m/s that carries me 6.1 m on flat ground. My widest gap is 3.85 m in Level02 (from the last 1.2 m platform down into the goal room), so it clears it with more than 2 m to spare. In the game the apex comes out at about 1.74 m because physics runs in 0.02 s steps.
+2. **Update and FixedUpdate.** Update reads the Move and Jump actions, builds the move direction from the camera, stamps the coyote and buffer times, queues the jump when both windows are open, and starts the squash on a landing. FixedUpdate sets `rb.linearVelocity` from the move, applies the queued jump once as an impulse, adds the fall gravity and resets isGrounded. If I swapped them, reading `WasPressedThisFrame` in FixedUpdate would miss presses, because at 144 fps about two frames in three have no FixedUpdate. Setting the velocity and adding forces in Update would also run a different number of times at different frame rates, so the jump and the fall would change with the frame rate.
+3. **Vector3.Dot.** It is in my ground check: `if (Vector3.Dot(contact.normal, Vector3.up) > 0.5f)`. Both vectors are length 1, so the dot is the cosine of the angle between the surface normal and up. A floor gives 1, a wall gives 0 and a ceiling gives -1. A positive dot means the surface faces up, and above 0.5 means it's less than 60° from flat, so only that counts as ground. That's why I can't jump again while touching a wall.
+4. **The juice.** It's a squash on landing. Body goes to y = 0.7 and x, z = 1 / √0.7 = 1.2 so the volume stays the same, then Ease.OutBack brings it back to 1 over 0.25 s, which is 15 frames at 60 fps. OutBack overshoots to about 1.1, so Body stretches to y = 1.03 for a moment before settling, and it reads like a bounce. I use LerpUnclamped so the overshoot isn't cut off, and set the scale to exactly 1 at the end. 0.25 s is short enough that it's done before the next jump. It only starts after more than 0.1 s in the air, and a running squash is stopped first.
 
-**Aesthetic profile:** Challenge and Sensation. Almost every rule (M2, M3, M6, M7) is about reading the next obstacle in time, and a run ends as soon as you get one wrong. The constant speed (M1) is what makes those split-second choices feel exciting rather than just hard.
+## Levels
 
-**Player types**
-- Primary: Achiever (acting × world), because I act on the game itself, not on other people. Jumping, rolling and switching lanes (M2, M3) are all about beating its obstacles, and the score and Top Run (M6, M7) are a ladder to climb.
-- Secondary: Explorer (interacting × world), because the coin lines and power-ups (M4, M5) reward learning how the track is laid out and where the safe route to the coins is.
-
-## Game 2 · Candy Crush Saga
-
-- **Store link:** https://play.google.com/store/apps/details?id=com.king.candycrushsaga
-- **Genre:** Puzzle / Match-3 / Casual / Single player
-- **I played:** More than 30 minutes, past the tutorial and through the early levels on the map.
-- **Video (optional):** None
-
-<p>
-<img src="Docs/game2/1.png" width="240">
-<img src="Docs/game2/2.png" width="240">
-<img src="Docs/game2/3.png" width="240">
-<img src="Docs/game2/4.png" width="240">
-</p>
-
-1. M3, M4, M5 · The blue candy order is ticked off with 1 move left, and there are striped candies on the board.
-2. M2, M3 · A match clearing while candies fall in. A colour bomb and a fish special candy are on the board, with 24 moves left and 23 blue candies to go.
-3. M1, M5 · Swapping an orange candy and a blue candy, with 26 moves left and 40 blue candies to collect.
-4. M1, M2, M6 · A line of blue candies being cleared and new ones falling down. The booster bar is along the bottom.
-
-| # | Mechanic | Dynamic | Aesthetic | Bartle type |
-|---|---|---|---|---|
-| M1 | The player swaps adjacent candies to create a row or column of three or more matching candies. | Players examine the board, search for useful matches, and choose swaps that clear candies while working toward the level objective. | Challenge: players must think ahead and choose effective moves rather than making random swaps. | Achiever: the player acts on the puzzle board to satisfy its rules and objectives. |
-| M2 | A successful match removes candies and causes other candies to fall into the empty spaces. | Players look for moves that create follow-up matches and use the resulting cascades to clear more of the board. | Sensation: chain reactions provide immediate visual and audio feedback and make successful moves satisfying. | Explorer: players learn how the board's rules work and use them to produce useful results. |
-| M3 | Matching four or more candies can create special candies with stronger clearing effects. | Players deliberately set up larger matches instead of only making basic three-candy matches. | Challenge: players plan their moves to create stronger combinations and solve difficult boards. | Explorer: finding out which shapes make which special candy rewards skilful manipulation of the game system. |
-| M4 | Levels have specific objectives, such as achieving required conditions before the move limit is reached. | Players prioritise moves according to the current objective instead of simply clearing any available candies. | Challenge: each objective gives the player a clear puzzle problem to solve within constraints. | Achiever: players work toward measurable level goals. |
-| M5 | Many levels give the player a limited number of moves, so each swap reduces the remaining move count. | Players think more carefully about future moves and try to avoid wasting moves on low-value matches. | Challenge: the move limit adds pressure and makes efficient planning important. | Achiever: players optimise actions to complete the level under its rules. |
-| M6 | Boosters and special tools can provide additional ways to clear candies or help solve difficult situations. | Players save or use helpful tools when a board becomes difficult, especially when a booster can make the difference between success and failure. | Expression: choosing when and how to use a limited tool gives players some control over their solving approach. | Achiever: a booster used at the right moment turns a lost board into a passed level. |
-| M7 | Completing a level advances the player along a larger level progression, with new levels and more complex challenges becoming available. | Players continue attempting levels, retrying failed puzzles, and progressing through the map to reach later challenges. | Submission: the short, self-contained levels make the game suitable for repeated casual sessions and spare-time play. | Achiever: progress through increasingly difficult levels is a central long-term goal. |
-
-**Aesthetic profile:** Challenge, Sensation and Submission. Every level is a puzzle with an objective and a move limit (M1, M4, M5), the cascades (M2) make good moves feel satisfying, and the short levels on a map (M7) make it easy to play a few in spare time and keep coming back.
-
-**Player types**
-- Primary: Achiever (acting × world), because I play against the game's rules on my own, with no other players involved. Meeting each level's objective inside the move limit and moving further along the map (M4, M5, M7) is the main goal.
-- Secondary: Explorer (interacting × world), because working out how cascades and special candies come about (M2, M3) is a big part of getting better at the game.
-
-## Level blockouts
-
-| Level | Screenshot | Its idea | Wayfinding tool |
-|---|---|---|---|
-| Level01 | <img src="Docs/levels/level01.png" width="320"> | A spawn room, a long hall and a goal room, about 69 m from spawn to goal. It is the basic layout the other levels change. | Leading lines: a dashed line on the floor runs from the spawn straight to the green goal. |
-| Level02 | <img src="Docs/levels/level02.png" width="320"> | The hall floor is gone, so you get across on separate platforms at different heights, with gaps between them and a coin on each one. The goal sits on a block at the end. | Leading lines: the lines bend from one platform to the next and show which way to jump. |
-| Level03 | <img src="Docs/levels/level03.png" width="320"> | A split route. A big block sits in the middle of the hall, so you pick the left or the right side and go round the smaller blocks. Diagonal walls pinch you into the goal room. | Breadcrumbs: a trail of coins on both sides of the split leads to the goal. |
+| Level | What the controller must do there | What I changed for this jump |
+|---|---|---|
+| Level01 | Run 69 m down the hall from the spawn room to the goal room. There are no jumps. | Took the collider off the leading lines prefab. The lines are 0.4 m off the floor right on the route, so the capsule used to catch on them. |
+| Level02 | Jump up onto a 1.2 m platform, jump a 3.6 m gap down to a 0.5 m platform, a 2.8 m gap back up to 1.2 m, a 3.85 m gap down into the goal room, then climb the 1.2 m step to the goal. | Lowered the two 2 m platforms and the goal step to 1.2 m, because a 1.8 m jump can't get the feet on top of 2 m. I kept the gaps since the jump carries 6.1 m. |
+| Level03 | Go left or right around the big block in the middle, then weave past the smaller blocks and the cylinder to the goal room. | Made the coin prefab a trigger. The coins were solid spheres on the route, so the capsule bumped into them. |
+| Level04 | Climb three 1.2 m ledges up to 3.6 m, run along a 1.5 m wide bridge and jump the 2.5 m gap in it, then drop down two ledges to the goal. | New level for this jump. The ledges are 1.2 m and the gap is 2.5 m to suit it. |
+| Level05 | Run through a 3 m wide corridor into a yard, then hop over or go round the 1.1 m low cover to reach the goal. | New level. The low cover is 1.1 m so the jump clears it easily. |
