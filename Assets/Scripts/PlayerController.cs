@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float minAirTime = 0.1f;
 
     Rigidbody rb;
+    Transform cam;
     InputAction moveAction;
     InputAction jumpAction;
 
@@ -40,14 +41,22 @@ public class PlayerController : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         rb.sleepThreshold = 0f; // a sleeping body stops sending OnCollisionStay
 
+        cam = Camera.main.transform;
         moveAction = InputSystem.actions.FindAction("Move");
         jumpAction = InputSystem.actions.FindAction("Jump");
     }
 
     void Update()
     {
+        // move relative to the camera, flat on the ground
         Vector2 input = moveAction.ReadValue<Vector2>();
-        move = Vector3.ClampMagnitude(new Vector3(input.x, 0f, input.y), 1f);
+        Vector3 forward = cam.forward;
+        forward.y = 0f;
+        forward.Normalize();
+        Vector3 right = cam.right;
+        right.y = 0f;
+        right.Normalize();
+        move = Vector3.ClampMagnitude(forward * input.y + right * input.x, 1f);
 
         // coyote time and jump buffer, both as timestamps
         if (isGrounded && !jumpQueued && !rising)
