@@ -6,12 +6,14 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] float speed = 6f;            // metres per second
+    [SerializeField] float jumpHeight = 1.8f;     // metres
 
     Rigidbody rb;
     InputAction moveAction;
+    InputAction jumpAction;
 
     Vector3 move;
-    bool isGrounded;
+    bool isGrounded, jumpQueued;
     Vector3 groundPoint, groundNormal = Vector3.up;
 
     void Awake()
@@ -23,17 +25,30 @@ public class PlayerController : MonoBehaviour
         rb.sleepThreshold = 0f; // a sleeping body stops sending OnCollisionStay
 
         moveAction = InputSystem.actions.FindAction("Move");
+        jumpAction = InputSystem.actions.FindAction("Jump");
     }
 
     void Update()
     {
         Vector2 input = moveAction.ReadValue<Vector2>();
         move = Vector3.ClampMagnitude(new Vector3(input.x, 0f, input.y), 1f);
+
+        // read the press here, apply it in FixedUpdate
+        if (jumpAction.WasPressedThisFrame() && isGrounded)
+            jumpQueued = true;
     }
 
     void FixedUpdate()
     {
         rb.linearVelocity = new Vector3(move.x * speed, rb.linearVelocity.y, move.z * speed);
+
+        if (jumpQueued)
+        {
+            jumpQueued = false;
+            float g = -Physics.gravity.y;
+            float v0 = Mathf.Sqrt(2f * g * jumpHeight);
+            rb.AddForce(Vector3.up * rb.mass * v0, ForceMode.Impulse);
+        }
 
         // the collision callbacks after this step set it again
         isGrounded = false;
