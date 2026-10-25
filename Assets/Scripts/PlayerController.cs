@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] float speed = 6f;            // metres per second
     [SerializeField] float jumpHeight = 1.8f;     // metres
+    [SerializeField] float fallMultiplier = 2.2f; // extra gravity while falling
 
     [Header("Jump windows")]
     [SerializeField] float coyoteTime = 0.1f;     // seconds after leaving a ledge
@@ -77,6 +78,9 @@ public class PlayerController : MonoBehaviour
         {
             rising = false;
         }
+
+        if (rb.linearVelocity.y < 0f)
+            rb.AddForce(Physics.gravity * (fallMultiplier - 1f), ForceMode.Acceleration);
 
         // the collision callbacks after this step set it again
         isGrounded = false;
