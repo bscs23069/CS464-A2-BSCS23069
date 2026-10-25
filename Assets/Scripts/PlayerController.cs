@@ -8,12 +8,18 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float speed = 6f;            // metres per second
     [SerializeField] float jumpHeight = 1.8f;     // metres
 
+    [Header("Jump windows")]
+    [SerializeField] float coyoteTime = 0.1f;     // seconds after leaving a ledge
+    [SerializeField] float jumpBuffer = 0.12f;    // seconds before landing
+
     Rigidbody rb;
     InputAction moveAction;
     InputAction jumpAction;
 
     Vector3 move;
-    bool isGrounded, jumpQueued;
+    bool isGrounded, jumpQueued, rising;
+    float lastGroundedTime = -1f;
+    float lastPressedTime = -1f;
     Vector3 groundPoint, groundNormal = Vector3.up;
 
     void Awake()
@@ -33,9 +39,20 @@ public class PlayerController : MonoBehaviour
         Vector2 input = moveAction.ReadValue<Vector2>();
         move = Vector3.ClampMagnitude(new Vector3(input.x, 0f, input.y), 1f);
 
-        // read the press here, apply it in FixedUpdate
-        if (jumpAction.WasPressedThisFrame() && isGrounded)
+        // coyote time and jump buffer, both as timestamps
+        if (isGrounded && !jumpQueued && !rising)
+            lastGroundedTime = Time.time;
+        if (jumpAction.WasPressedThisFrame())
+            lastPressedTime = Time.time;
+
+        bool canJump = Time.time - lastGroundedTime <= coyoteTime;
+        bool wantJump = Time.time - lastPressedTime <= jumpBuffer;
+        if (canJump && wantJump)
+        {
             jumpQueued = true;
+            lastGroundedTime = -1f;
+            lastPressedTime = -1f;
+        }
     }
 
     void FixedUpdate()
@@ -45,9 +62,20 @@ public class PlayerController : MonoBehaviour
         if (jumpQueued)
         {
             jumpQueued = false;
+            rising = true;
+
+            // zero the fall first, or a coyote jump comes out short
+            Vector3 v = rb.linearVelocity;
+            v.y = 0f;
+            rb.linearVelocity = v;
+
             float g = -Physics.gravity.y;
             float v0 = Mathf.Sqrt(2f * g * jumpHeight);
             rb.AddForce(Vector3.up * rb.mass * v0, ForceMode.Impulse);
+        }
+        else if (rising && rb.linearVelocity.y <= 0f)
+        {
+            rising = false;
         }
 
         // the collision callbacks after this step set it again
