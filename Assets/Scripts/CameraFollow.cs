@@ -8,6 +8,7 @@ public class CameraFollow : MonoBehaviour
     [SerializeField] float lookAhead = 0.35f; // seconds of the player's velocity
 
     Rigidbody targetBody;
+    Vector3 aim;
     Vector3 velocity;
 
     void Awake()
@@ -15,6 +16,7 @@ public class CameraFollow : MonoBehaviour
         if (target == null)
             target = FindAnyObjectByType<PlayerController>().transform;
         targetBody = target.GetComponent<Rigidbody>();
+        aim = target.position;
     }
 
     void LateUpdate()
@@ -22,10 +24,11 @@ public class CameraFollow : MonoBehaviour
         // aim at where the player will be, not where they are
         Vector3 flatVelocity = targetBody.linearVelocity;
         flatVelocity.y = 0f;
-        Vector3 aim = target.position + flatVelocity * lookAhead;
+        Vector3 wantedAim = target.position + flatVelocity * lookAhead;
 
-        Vector3 wanted = aim + offset;
-        transform.position = Vector3.SmoothDamp(transform.position, wanted, ref velocity, smoothTime);
+        // smooth the aim point itself, so a sudden turn doesn't snap the camera round
+        aim = Vector3.SmoothDamp(aim, wantedAim, ref velocity, smoothTime);
+        transform.position = aim + offset;
         transform.LookAt(aim);
     }
 }
