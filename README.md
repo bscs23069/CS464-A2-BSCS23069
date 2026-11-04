@@ -1,6 +1,6 @@
 # CS464 Assignment 02 · Mayasa Fakhar · BSCS23069
 
-- **Video:** [VIDEO LINK]
+- **Video:** https://drive.google.com/file/d/1IFPBA7mEkgBvS_E1JehHMMxbGeq9mV4Y/view?usp=sharing
 - **Input:** InputSystem.actions, the Move and Jump actions from the project-wide actions asset (Active Input Handling is set to Input System Package)
 - **Ground check:** contact normal, a contact only counts if `Vector3.Dot(normal, Vector3.up) > 0.5`
 - **Camera:** SmoothDamp with look-ahead from the player's velocity
